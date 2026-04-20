@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Brand System</title>
+  <link rel="stylesheet" href="data/brand-page.css" />
+  <script src="data/brands.js"></script>
+  <script src="data/render.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const params = new URLSearchParams(location.search);
+    const slug = params.get("b") || "cosmos";
+    renderBrandPage(slug);
+    const b = window.BRANDS[slug];
+
+    // ——— Mode (light/dark) ———
+    function ModeSwitch() {
+      const [mode, setMode] = React.useState(() => localStorage.getItem("bp-mode-" + slug) || b.style);
+      React.useEffect(() => {
+        document.documentElement.dataset.mode = mode;
+        localStorage.setItem("bp-mode-" + slug, mode);
+        // Swap in dark/light surfaces if user toggled
+        const root = document.documentElement.style;
+        if (mode === "dark" && b.style === "light") {
+          root.setProperty("--bg", "#0B0B0E");
+          root.setProperty("--bg-alt", "#131318");
+          root.setProperty("--surface", "#1A1A20");
+          root.setProperty("--border", "#2A2A32");
+          root.setProperty("--text", "#ECECEF");
+          root.setProperty("--text-muted", "#8A8A95");
+        } else if (mode === "light" && b.style === "dark") {
+          root.setProperty("--bg", "#FAFAF7");
+          root.setProperty("--bg-alt", "#F2F2ED");
+          root.setProperty("--surface", "#FFFFFF");
+          root.setProperty("--border", "#E4E4DE");
+          root.setProperty("--text", "#15151A");
+          root.setProperty("--text-muted", "#6E6E78");
+        } else {
+          ["--bg","--bg-alt","--surface","--border","--text","--text-muted"].forEach(v => root.removeProperty(v));
+        }
+      }, [mode]);
+      return (
+        <div className="mode-toggle" role="tablist">
+          <button className={mode==="light"?"active":""} onClick={()=>setMode("light")}>Light</button>
+          <button className={mode==="dark"?"active":""} onClick={()=>setMode("dark")}>Dark</button>
+        </div>
+      );
+    }
+
+    function ArtPattern({ type, primary, ink, accent, surface, bgAlt }) {
+      switch (type) {
+        case "orbit":
+          return (
+            <>
+              <defs>
+                <radialGradient id="orb-g" cx="50%" cy="50%" r="70%">
+                  <stop offset="0%" stopColor={primary} stopOpacity="0.45" />
+                  <stop offset="100%" stopColor={ink} stopOpacity="0" />
+                </radialGradient>
+              </defs>
+              <rect width="400" height="400" fill={ink} />
+              <rect width="400" height="400" fill="url(#orb-g)" />
+              <g fill="none" stroke={primary} strokeOpacity="0.45" strokeWidth="1.2">
+                <ellipse cx="200" cy="200" rx="180" ry="60" transform="rotate(-15 200 200)" />
+                <ellipse cx="200" cy="200" rx="140" ry="48" transform="rotate(25 200 200)" />
+                <ellipse cx="200" cy="200" rx="100" ry="36" transform="rotate(60 200 200)" />
+                <ellipse cx="200" cy="200" rx="60" ry="24" transform="rotate(100 200 200)" />
+              </g>
+              <circle cx="200" cy="200" r="6" fill={accent} />
+            </>
+          );
+        case "flow":
+          return (
+            <>
+              <defs>
+                <linearGradient id="flow-g" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor={primary} />
+                  <stop offset="1" stopColor={accent} />
+                </linearGradient>
+              </defs>
+              <rect width="400" height="400" fill={bgAlt} />
+              <path d="M0,260 Q120,180 220,260 T400,260 L400,400 L0,400 Z" fill="url(#flow-g)" opacity="0.95" />
+              <path d="M0,300 Q120,230 240,300 T400,300 L400,400 L0,400 Z" fill={primary} opacity="0.45" />
+              <circle cx="330" cy="80" r="48" fill={primary} />
+              <circle cx="330" cy="80" r="48" fill="none" stroke={accent} strokeWidth="6" strokeDasharray="4 8" />
+            </>
+          );
+        case "lattice":
+          return (
+            <>
+              <defs>
+                <linearGradient id="lat-g" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor={primary} />
+                  <stop offset="0.5" stopColor={accent} />
+                  <stop offset="1" stopColor={ink} />
+                </linearGradient>
+              </defs>
+              <rect width="400" height="400" fill={ink} />
+              <g stroke="url(#lat-g)" strokeOpacity="0.6" strokeWidth="1.5">
+                {Array.from({ length: 20 }).map((_, i) => (
+                  <line key={i} x1={-160 + i * 36} y1="0" x2={240 + i * 36} y2="400" />
+                ))}
+              </g>
+              <rect x="60" y="60" width="280" height="280" fill="none" stroke={primary} strokeOpacity="0.55" strokeWidth="1" />
+              <rect x="90" y="90" width="220" height="220" fill="none" stroke={accent} strokeOpacity="0.5" strokeWidth="0.8" />
+            </>
+          );
+        case "wave":
+          return (
+            <>
+              <defs>
+                <linearGradient id="wav-g" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stopColor={primary} />
+                  <stop offset="1" stopColor={accent} />
+                </linearGradient>
+              </defs>
+              <rect width="400" height="400" fill={bgAlt} />
+              <path d="M-40,280 Q100,180 200,280 T440,280 L440,440 L-40,440 Z" fill="url(#wav-g)" opacity="0.9" />
+              <path d="M-40,320 Q100,220 200,320 T440,320 L440,440 L-40,440 Z" fill="url(#wav-g)" opacity="0.55" />
+              <path d="M-40,120 Q120,60 240,120 T440,120" fill="none" stroke={primary} strokeWidth="2" strokeOpacity="0.4" />
+              <path d="M-40,160 Q120,100 240,160 T440,160" fill="none" stroke={accent} strokeWidth="2" strokeOpacity="0.5" />
+            </>
+          );
+        case "topo":
+          return (
+            <>
+              <rect width="400" height="400" fill={surface} />
+              <g fill="none" stroke={primary} strokeOpacity="0.12" strokeWidth="1">
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const y = 40 + i * 30;
+                  return <path key={i} d={`M0,${y} Q100,${y - 15} 200,${y} T400,${y}`} />;
+                })}
+              </g>
+              <rect x="40" y="40" width="320" height="320" fill="none" stroke={primary} strokeOpacity="0.1" strokeWidth="1" />
+            </>
+          );
+        case "crest":
+          return (
+            <>
+              <rect width="400" height="400" fill={bgAlt} />
+              <line x1="40" y1="200" x2="360" y2="200" stroke={accent} strokeWidth="2" />
+              <line x1="40" y1="60" x2="360" y2="60" stroke={primary} strokeOpacity="0.25" strokeWidth="1" />
+              <line x1="40" y1="340" x2="360" y2="340" stroke={primary} strokeOpacity="0.25" strokeWidth="1" />
+              <text x="200" y="56" textAnchor="middle" fontSize="9" letterSpacing="6" fill={primary} opacity="0.55" fontFamily="serif">· CAPITAL ·</text>
+              <text x="200" y="376" textAnchor="middle" fontSize="9" letterSpacing="6" fill={primary} opacity="0.55" fontFamily="serif">EST · MMXXV</text>
+            </>
+          );
+        case "organic":
+          return (
+            <>
+              <rect width="400" height="400" fill={bgAlt} />
+              <g fill={primary} fillOpacity="0.22">
+                {Array.from({ length: 140 }).map((_, i) => {
+                  const angle = (i / 140) * Math.PI * 2;
+                  const radius = 140 + Math.sin(i * 0.9) * 28;
+                  const cx = 200 + Math.cos(angle) * radius;
+                  const cy = 200 + Math.sin(angle) * radius;
+                  return <circle key={i} cx={cx} cy={cy} r={1.5 + (i % 3)} />;
+                })}
+              </g>
+              <circle cx="200" cy="200" r="60" fill="none" stroke={accent} strokeWidth="1.5" strokeDasharray="3 6" />
+            </>
+          );
+        case "window":
+          return (
+            <>
+              <rect width="400" height="400" fill={bgAlt} />
+              <g fill={primary}>
+                <rect x="40" y="40" width="150" height="150" />
+                <rect x="210" y="130" width="70" height="60" />
+                <rect x="300" y="130" width="60" height="60" />
+                <rect x="40" y="210" width="80" height="80" />
+                <rect x="140" y="210" width="220" height="150" />
+                <rect x="40" y="310" width="80" height="50" />
+              </g>
+              <rect x="210" y="40" width="150" height="80" fill={accent} />
+            </>
+          );
+        case "columns":
+          return (
+            <>
+              <rect width="400" height="400" fill={bgAlt} />
+              <g fill={primary} fillOpacity="0.1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <rect key={i} x={40 + i * 68} y="60" width="40" height="280" />
+                ))}
+              </g>
+              <line x1="20" y1="340" x2="380" y2="340" stroke={primary} strokeWidth="3" />
+              <line x1="20" y1="60" x2="380" y2="60" stroke={primary} strokeWidth="1" />
+              <line x1="20" y1="64" x2="380" y2="64" stroke={accent} strokeWidth="1" />
+            </>
+          );
+        case "constellation":
+          return (
+            <>
+              <rect width="400" height="400" fill={ink} />
+              <g stroke={primary} strokeOpacity="0.45" strokeWidth="1">
+                <line x1="100" y1="110" x2="200" y2="80" />
+                <line x1="200" y1="80" x2="310" y2="140" />
+                <line x1="310" y1="140" x2="260" y2="260" />
+                <line x1="260" y1="260" x2="150" y2="220" />
+                <line x1="150" y1="220" x2="100" y2="110" />
+                <line x1="150" y1="220" x2="90" y2="310" />
+                <line x1="260" y1="260" x2="320" y2="320" />
+              </g>
+              <g fill={primary}>
+                <circle cx="100" cy="110" r="6" />
+                <circle cx="200" cy="80" r="9" />
+                <circle cx="310" cy="140" r="7" />
+                <circle cx="150" cy="220" r="10" />
+                <circle cx="260" cy="260" r="6" />
+                <circle cx="320" cy="320" r="5" />
+                <circle cx="90" cy="310" r="7" />
+              </g>
+            </>
+          );
+        case "industrial":
+          return (
+            <>
+              <rect width="400" height="400" fill={bgAlt} />
+              <g>
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <rect
+                    key={i}
+                    x={-140 + i * 70}
+                    y="-50"
+                    width="34"
+                    height="550"
+                    fill={primary}
+                    opacity={i % 2 ? 0.08 : 0.22}
+                    transform={`rotate(22 ${-140 + i * 70} 200)`}
+                  />
+                ))}
+              </g>
+              <rect x="40" y="170" width="320" height="60" fill={accent} />
+              <rect x="40" y="170" width="320" height="60" fill="none" stroke={primary} strokeWidth="2" />
+              <g fontFamily="monospace" fontSize="10" letterSpacing="4" fill={primary}>
+                <text x="56" y="208">GVP · OPS · 2025</text>
+              </g>
+            </>
+          );
+        case "stamp":
+          return (
+            <>
+              <rect width="400" height="400" fill={surface} />
+              <rect x="30" y="30" width="340" height="340" fill="none" stroke={primary} strokeWidth="2" />
+              <rect x="44" y="44" width="312" height="312" fill="none" stroke={primary} strokeWidth="1" strokeDasharray="4 4" />
+              <g fontFamily="monospace" fontSize="9" fill={primary} letterSpacing="2">
+                <text x="60" y="64">ILG · APPROVED</text>
+                <text x="60" y="350">VISA · 2025 · PASSPORT</text>
+              </g>
+              <circle cx="320" cy="330" r="28" fill="none" stroke={accent} strokeWidth="2" />
+              <circle cx="320" cy="330" r="20" fill="none" stroke={accent} strokeWidth="1" />
+              <text x="320" y="334" textAnchor="middle" fontSize="9" fill={accent} fontFamily="monospace" letterSpacing="1">OK</text>
+            </>
+          );
+        case "laurel":
+          return (
+            <>
+              <rect width="400" height="400" fill={bgAlt} />
+              <g fill="none" stroke={primary} strokeWidth="2" strokeOpacity="0.35">
+                <path d="M80,200 Q80,100 200,60 Q320,100 320,200" />
+                <path d="M80,200 Q80,300 200,340 Q320,300 320,200" />
+              </g>
+              <g fill={accent}>
+                {[0, 40, 80, 120, 160, 200, 240, 280, 320].map((deg, i) => {
+                  const rad = (deg * Math.PI) / 180;
+                  const x = 200 + Math.cos(rad - Math.PI / 2) * 150;
+                  const y = 200 + Math.sin(rad - Math.PI / 2) * 150;
+                  return (
+                    <polygon
+                      key={i}
+                      points={`${x},${y - 7} ${x + 2},${y - 2} ${x + 7},${y - 2} ${x + 3},${y + 1} ${x + 4.5},${y + 6} ${x},${y + 3} ${x - 4.5},${y + 6} ${x - 3},${y + 1} ${x - 7},${y - 2} ${x - 2},${y - 2}`}
+                    />
+                  );
+                })}
+              </g>
+              <circle cx="200" cy="200" r="36" fill="none" stroke={primary} strokeOpacity="0.3" strokeWidth="1" />
+            </>
+          );
+        case "pinstripe":
+          return (
+            <>
+              <rect width="400" height="400" fill={ink} />
+              <g stroke={primary} strokeOpacity="0.45" strokeWidth="1">
+                {Array.from({ length: 32 }).map((_, i) => (
+                  <line key={i} x1={12 * i} y1="0" x2={12 * i} y2="400" />
+                ))}
+              </g>
+              <line x1="0" y1="200" x2="400" y2="200" stroke={accent} strokeWidth="0.5" strokeOpacity="0.8" />
+            </>
+          );
+        case "spectrum":
+          return (
+            <>
+              <defs>
+                <linearGradient id="spec-g" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stopColor="#E8543E" />
+                  <stop offset="0.2" stopColor="#F2A83A" />
+                  <stop offset="0.4" stopColor="#F5E05A" />
+                  <stop offset="0.6" stopColor="#3EAE73" />
+                  <stop offset="0.8" stopColor="#2563EB" />
+                  <stop offset="1" stopColor="#7A3BE0" />
+                </linearGradient>
+              </defs>
+              <rect width="400" height="400" fill={surface} />
+              <rect x="40" y="180" width="320" height="40" fill="url(#spec-g)" />
+              <g stroke={primary} strokeOpacity="0.35" strokeWidth="0.6">
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <line key={i} x1={40 + i * 23} y1="120" x2={40 + i * 23} y2="180" />
+                ))}
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <line key={`b${i}`} x1={40 + i * 23} y1="220" x2={40 + i * 23} y2="280" />
+                ))}
+              </g>
+              <g fontFamily="ui-monospace, JetBrains Mono, monospace" fontSize="9" fill={primary} opacity="0.7">
+                <text x="40" y="110">λ</text>
+                <text x="340" y="110">ν</text>
+              </g>
+            </>
+          );
+        default:
+          return <rect width="400" height="400" fill={bgAlt} />;
+      }
+    }
+
+    function HeroArt({ brand, aspect = "1" }) {
+      const c = brand.colors;
+      return (
+        <div className="hero-art" style={{ aspectRatio: aspect }}>
+          <svg
+            className="art-svg"
+            viewBox="0 0 400 400"
+            preserveAspectRatio="xMidYMid slice"
+            role="presentation"
+            aria-hidden="true"
+          >
+            <ArtPattern
+              type={brand.artType}
+              primary={c.primary}
+              ink={c.primaryInk}
+              accent={c.accent}
+              surface={c.surface}
+              bgAlt={c.bgAlt}
+            />
+          </svg>
+          <div className="art-logo">
+            <div className="art-chip">
+              <img src={`assets/logos/${brand.slug}.png`} alt="" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Topbar() {
+      return (
+        <div className="topbar">
+          <div className="topbar-inner">
+            <a className="back" href="index.html">← CodeLoop Ecosystem</a>
+            <div className="crumbs">Brand Systems · <strong>{b.name}</strong> {b.subtitle && <span style={{color:"var(--text-muted)"}}>· {b.subtitle}</span>}</div>
+            <ModeSwitch />
+          </div>
+        </div>
+      );
+    }
+
+    function Hero() {
+      return (
+        <section className="hero">
+          <div className="hero-logo">
+            <img src={`assets/logos/${b.slug}.png`} alt={b.name} />
+          </div>
+          <div className="hero-eyebrow">{b.bioma} · {b.archetype}</div>
+          <h1>{b.hero}</h1>
+          <p className="lead">{b.heroSub}</p>
+          <div className="cta-row">
+            <button className="btn primary lg">{b.cta}</button>
+            <button className="btn ghost lg">View brand book ↗</button>
+          </div>
+        </section>
+      );
+    }
+
+    function Identity() {
+      return (
+        <section className="block">
+          <div className="eyebrow">01 · Identity</div>
+          <h1 className="section-title">{b.tagline}</h1>
+          <p className="section-sub">{b.positioning}</p>
+          <div className="identity-card">
+            <div>
+              <HeroArt brand={b} aspect="16/9" />
+            </div>
+            <dl className="meta">
+              <dt>Organization</dt><dd>{b.bioma}</dd>
+              <dt>Venture</dt><dd>{b.venture}</dd>
+              <dt>Endeavor</dt><dd>{b.endeavor}</dd>
+              <dt>Initiative</dt><dd>{b.initiative}</dd>
+              <dt>Value</dt><dd>{b.value}</dd>
+              <dt>Method</dt><dd>{b.method}</dd>
+              <dt>Reference</dt><dd>{b.reference}</dd>
+              <dt>Mood</dt>
+              <dd>
+                <div className="mood-tags">{b.mood.map(m => <span className="mood-tag" key={m}>{m}</span>)}</div>
+              </dd>
+            </dl>
+          </div>
+        </section>
+      );
+    }
+
+    function Palette() {
+      const core = [
+        { name: "Primary", hex: b.colors.primary, ink: b.colors.primaryInk },
+        { name: "Primary Ink", hex: b.colors.primaryInk, ink: "#fff" },
+        { name: "Accent", hex: b.colors.accent, ink: b.colors.primaryInk },
+        { name: "Surface", hex: b.colors.surface, ink: b.colors.text, border:true },
+      ];
+      return (
+        <section className="block">
+          <div className="eyebrow">02 · Color</div>
+          <h1 className="section-title">A palette built around {b.colors.primary}.</h1>
+          <p className="section-sub">Core tokens are used for brand moments; the 10-step primary scale handles UI states. Semantics stay consistent across brands so system messaging remains readable.</p>
+          <div className="palette-grid">
+            {core.map(c => (
+              <div key={c.name} className="swatch-big">
+                <div className="chip" style={{background:c.hex, borderBottom: c.border ? "1px solid var(--border)" : "none"}}></div>
+                <div className="meta"><span className="name">{c.name}</span><span className="hex">{c.hex.toUpperCase()}</span></div>
+              </div>
+            ))}
+          </div>
+          <h3 style={{fontFamily:"var(--font-display)", fontSize:14, fontWeight:600, marginTop:48, marginBottom:10, letterSpacing:"0.05em", textTransform:"uppercase", color:"var(--text-muted)"}}>Primary scale · 50 → 900</h3>
+          <div className="scale-row">
+            {b.scale.map((hex, i) => {
+              const step = i === 0 ? 50 : i * 100;
+              const isLight = i < 4;
+              return <div key={i} className="step" style={{background:hex, color: isLight ? "#0b0b0b" : "#fff"}}>{step}</div>;
+            })}
+          </div>
+          <h3 style={{fontFamily:"var(--font-display)", fontSize:14, fontWeight:600, marginTop:48, marginBottom:10, letterSpacing:"0.05em", textTransform:"uppercase", color:"var(--text-muted)"}}>Semantic</h3>
+          <div className="semantic-row">
+            {Object.entries(b.semantics).map(([k,v]) => (
+              <div key={k} className="sem">
+                <div className="dot" style={{background:v}}></div>
+                <div className="info"><b style={{textTransform:"capitalize"}}>{k}</b><span>{v.toUpperCase()}</span></div>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    function Typography() {
+      const scale = [
+        { tok: "Display", size: 72, text: b.name },
+        { tok: "H1 · 56", size: 56, text: b.hero.split(".")[0] + "." },
+        { tok: "H2 · 40", size: 40, text: b.tagline },
+        { tok: "H3 · 28", size: 28, text: "Designed for the long arc." },
+        { tok: "Body · 16", size: 16, text: "The quick brown fox jumps over a lazy dog while the typography holds." },
+        { tok: "Caption · 12", size: 12, text: "Uppercase labels, meta and tokens." },
+      ];
+      return (
+        <section className="block">
+          <div className="eyebrow">03 · Typography</div>
+          <h1 className="section-title">Two voices. One pairing.</h1>
+          <p className="section-sub">{b.fonts.display} for display and headlines. {b.fonts.text} for text, UI and long-form reading. Both run at the weights the system actually needs — no more, no less.</p>
+
+          <div className="type-grid">
+            <div className="type-specimen">
+              <div className="label"><span>Display</span><span>{b.fonts.display}</span></div>
+              <div className="glyph">Aa</div>
+              <div className="pangram">A brand is a pattern of promises kept.</div>
+              <div className="weight-row">
+                {[400,500,600,700].map(w => (
+                  <div key={w} className="w">
+                    <div className="sample" style={{fontWeight:w}}>Ag {b.name}</div>
+                    <div className="tag">{b.fonts.display} · {w}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="type-specimen text">
+              <div className="label"><span>Text</span><span>{b.fonts.text}</span></div>
+              <div className="glyph">Aa</div>
+              <div className="pangram">Set long reads in a single text family, resisting the urge to decorate.</div>
+              <div className="weight-row">
+                {[400,500,600,700].map(w => (
+                  <div key={w} className="w">
+                    <div className="sample" style={{fontWeight:w}}>Ag {b.name}</div>
+                    <div className="tag">{b.fonts.text} · {w}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="scale-demo">
+                {scale.map(s => (
+                  <div className="row" key={s.tok}>
+                    <div className="tok">{s.tok}</div>
+                    <div className="sample" style={{fontSize:s.size, fontFamily: s.size>=28 ? "var(--font-display)" : "var(--font-text)", fontWeight: s.size>=28 ? 600 : 400}}>{s.text}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Tokens() {
+      const spaces = [{k:"xs",v:4},{k:"sm",v:8},{k:"md",v:16},{k:"lg",v:24},{k:"xl",v:40},{k:"2xl",v:64}];
+      const radii = [{k:"sm",v:b.radii.sm},{k:"md",v:b.radii.md},{k:"lg",v:b.radii.lg},{k:"xl",v:b.radii.xl}];
+      const shadows = [
+        {k:"sm", css:"0 1px 2px rgba(0,0,0,.08)"},
+        {k:"md", css:"0 4px 10px rgba(0,0,0,.10)"},
+        {k:"lg", css:"0 10px 28px rgba(0,0,0,.14)"},
+        {k:"xl", css:"0 24px 56px rgba(0,0,0,.18)"},
+      ];
+      return (
+        <section className="block">
+          <div className="eyebrow">04 · Tokens</div>
+          <h1 className="section-title">Spacing · radii · elevation.</h1>
+          <p className="section-sub">Every component in this system is built from these six space steps, four radii, and four shadow levels. Consistency is the whole point.</p>
+          <div className="tokens-grid">
+            <div className="token-card">
+              <h3>Spacing (px)</h3>
+              {spaces.map(s => (
+                <div className="token-row" key={s.k}>
+                  <div className="vis space-vis" style={{width:s.v}}></div>
+                  <div className="name">{s.k}</div>
+                  <div className="val">{s.v}px</div>
+                </div>
+              ))}
+            </div>
+            <div className="token-card">
+              <h3>Radii (px)</h3>
+              {radii.map(r => (
+                <div className="token-row" key={r.k}>
+                  <div className="vis radius-vis" style={{borderRadius:r.v}}></div>
+                  <div className="name">{r.k}</div>
+                  <div className="val">{r.v}px</div>
+                </div>
+              ))}
+            </div>
+            <div className="token-card">
+              <h3>Elevation</h3>
+              {shadows.map(s => (
+                <div className="token-row" key={s.k}>
+                  <div className="vis shadow-vis" style={{boxShadow:s.css}}></div>
+                  <div className="name">{s.k}</div>
+                  <div className="val">shadow.{s.k}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Components() {
+      return (
+        <section className="block">
+          <div className="eyebrow">05 · Components</div>
+          <h1 className="section-title">The component library.</h1>
+          <p className="section-sub">Buttons, forms, containers, navigation, feedback, data display — each rendered with this brand's tokens so you can see the system working as a whole.</p>
+
+          {/* Buttons */}
+          <h3 style={{fontFamily:"var(--font-display)", fontWeight:600, marginTop:16, marginBottom:16}}>Buttons</h3>
+          <div className="component-grid">
+            <div className="component-card"><span className="cc-label">Primary</span>
+              <button className="btn primary">Primary</button>
+              <button className="btn primary sm">Small</button>
+              <button className="btn primary lg">Large</button>
+              <button className="btn primary" disabled>Disabled</button>
+            </div>
+            <div className="component-card"><span className="cc-label">Secondary</span>
+              <button className="btn secondary">Secondary</button>
+              <button className="btn secondary sm">Small</button>
+              <button className="btn secondary lg">Large</button>
+            </div>
+            <div className="component-card"><span className="cc-label">Ghost</span>
+              <button className="btn ghost">Ghost</button>
+              <button className="btn ghost sm">Small</button>
+              <button className="btn ghost lg">Large</button>
+            </div>
+            <div className="component-card"><span className="cc-label">Destructive</span>
+              <button className="btn danger">Delete</button>
+              <button className="btn danger sm">Remove</button>
+            </div>
+          </div>
+
+          {/* Forms */}
+          <h3 style={{fontFamily:"var(--font-display)", fontWeight:600, marginTop:48, marginBottom:16}}>Forms</h3>
+          <div className="card">
+            <div className="form-demo">
+              <div className="form-field">
+                <label>Full name</label>
+                <input type="text" defaultValue="Ada Lovelace" />
+              </div>
+              <div className="form-field">
+                <label>Role</label>
+                <select defaultValue="pm">
+                  <option value="pm">Product manager</option>
+                  <option value="eng">Engineer</option>
+                  <option value="des">Designer</option>
+                </select>
+              </div>
+              <div className="form-field" style={{gridColumn:"1 / -1"}}>
+                <label>Notes</label>
+                <textarea defaultValue={`Short note about ${b.name}.`}></textarea>
+              </div>
+              <div className="check-row">
+                <label className="check"><input type="checkbox" defaultChecked /> Subscribe to updates</label>
+                <label className="check"><input type="checkbox" /> Invite team</label>
+                <label className="check"><input type="radio" name="rr" defaultChecked /> Monthly billing</label>
+                <label className="check"><input type="radio" name="rr" /> Annual billing</label>
+              </div>
+              <div style={{display:"flex", gap:10, alignItems:"flex-end", justifyContent:"flex-end"}}>
+                <button className="btn ghost">Cancel</button>
+                <button className="btn primary">Save changes</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <h3 style={{fontFamily:"var(--font-display)", fontWeight:600, marginTop:48, marginBottom:16}}>Navigation</h3>
+          <div className="nav-demo">
+            <div className="navbar-demo">
+              <span className="brand">{b.name}</span>
+              <ul>
+                <li><a className="active">Overview</a></li>
+                <li><a>Platform</a></li>
+                <li><a>Ventures</a></li>
+                <li><a>Research</a></li>
+              </ul>
+              <div className="spacer"></div>
+              <button className="btn ghost sm">Sign in</button>
+              <button className="btn primary sm">{b.cta.split(" ")[0]}</button>
+            </div>
+            <div>
+              <div className="tabs-demo">
+                <div className="tab active">Dashboard</div>
+                <div className="tab">Ventures</div>
+                <div className="tab">Activity</div>
+                <div className="tab">Settings</div>
+              </div>
+            </div>
+            <div className="breadcrumb">
+              <a>Ecosystem</a><span className="sep">/</span>
+              <a>{b.bioma.split("·")[1]?.trim()}</a><span className="sep">/</span>
+              <span className="cur">{b.name}</span>
+            </div>
+          </div>
+
+          {/* Feedback */}
+          <h3 style={{fontFamily:"var(--font-display)", fontWeight:600, marginTop:48, marginBottom:16}}>Feedback</h3>
+          <div style={{display:"flex", gap:8, flexWrap:"wrap", marginBottom:20}}>
+            <span className="badge success">● Active</span>
+            <span className="badge warning">⚠ Pending</span>
+            <span className="badge danger">× Failed</span>
+            <span className="badge info">i Info</span>
+            <span className="badge neutral">Archived</span>
+          </div>
+          <div className="alert-row">
+            <div className="alert info"><div><div className="title">A new corridor is available.</div><div className="msg">Review the latest partnership protocol before it activates on Monday.</div></div></div>
+            <div className="alert success"><div><div className="title">Deploy succeeded.</div><div className="msg">All services are reporting healthy on the production mesh.</div></div></div>
+            <div className="alert warning"><div><div className="title">Quota warning.</div><div className="msg">You've used 82% of this month's allocation. Upgrade to avoid throttling.</div></div></div>
+            <div className="alert danger"><div><div className="title">Settlement failed.</div><div className="msg">Counterparty vault rejected the proof-of-compliance. Retry after review.</div></div></div>
+          </div>
+
+          {/* Data display */}
+          <h3 style={{fontFamily:"var(--font-display)", fontWeight:600, marginTop:48, marginBottom:16}}>Data display</h3>
+          <div className="stat-grid">
+            <div className="stat-card"><div className="label">Active ventures</div><div className="value">142</div><div className="delta up">▲ 12 this quarter</div></div>
+            <div className="stat-card"><div className="label">Capital deployed</div><div className="value">$3.8B</div><div className="delta up">▲ 6.4% YoY</div></div>
+            <div className="stat-card"><div className="label">Members</div><div className="value">28,410</div><div className="delta up">▲ 842 MoM</div></div>
+            <div className="stat-card"><div className="label">Incidents</div><div className="value">0</div><div className="delta down">▼ clean 92d</div></div>
+          </div>
+          <div className="chart-placeholder">
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline"}}>
+              <strong style={{fontFamily:"var(--font-display)", fontWeight:600}}>Monthly throughput</strong>
+              <span style={{fontFamily:"ui-monospace, JetBrains Mono, monospace", fontSize:11, color:"var(--text-muted)"}}>12 months</span>
+            </div>
+            <div className="chart-bars">
+              {[34,52,41,66,58,74,69,82,76,91,88,96].map((h,i) => <div key={i} className="bar" style={{height:`${h}%`}}></div>)}
+            </div>
+          </div>
+          <table className="table-demo" style={{marginTop:24}}>
+            <thead><tr><th>Venture</th><th>Stage</th><th>Owner</th><th style={{textAlign:"right"}}>MRR</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Atlas Logistics</td><td>Series B</td><td>M. Nakamura</td><td style={{textAlign:"right", fontFamily:"ui-monospace, monospace"}}>$412k</td><td><span className="badge success">● Healthy</span></td></tr>
+              <tr><td>Hyperion Rails</td><td>Seed</td><td>S. Okafor</td><td style={{textAlign:"right", fontFamily:"ui-monospace, monospace"}}>$84k</td><td><span className="badge warning">⚠ Watch</span></td></tr>
+              <tr><td>Meridian Vaults</td><td>Series A</td><td>R. Valente</td><td style={{textAlign:"right", fontFamily:"ui-monospace, monospace"}}>$268k</td><td><span className="badge success">● Healthy</span></td></tr>
+              <tr><td>Solas Farms</td><td>Pre-seed</td><td>A. Kimura</td><td style={{textAlign:"right", fontFamily:"ui-monospace, monospace"}}>$12k</td><td><span className="badge info">i Onboarding</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+      );
+    }
+
+    function LogoUsage() {
+      return (
+        <section className="block">
+          <div className="eyebrow">06 · Logo</div>
+          <h1 className="section-title">Logo usage.</h1>
+          <p className="section-sub">The mark has a clear space equal to the height of its most dominant letter. Use only on approved background treatments below.</p>
+          <div className="logo-grid">
+            <div className="logo-tile on-surface"><span className="caption">On surface</span><img src={`assets/logos/${b.slug}.png`} /></div>
+            <div className="logo-tile on-bg"><span className="caption">On bg alt</span><img src={`assets/logos/${b.slug}.png`} /></div>
+            <div className="logo-tile on-primary"><span className="caption">On primary</span><img src={`assets/logos/${b.slug}.png`} /></div>
+          </div>
+        </section>
+      );
+    }
+
+    function HeroSample() {
+      return (
+        <section className="block">
+          <div className="eyebrow">07 · In the wild</div>
+          <h1 className="section-title">What the system looks like, assembled.</h1>
+          <p className="section-sub">A marketing hero built entirely from this brand's tokens — no exceptions, no overrides.</p>
+          <div className="hero-sample">
+            <div className="inner">
+              <div>
+                <div className="eye">{b.bioma}</div>
+                <h2>{b.hero}</h2>
+                <p>{b.heroSub}</p>
+                <div className="cta-row">
+                  <button className="btn primary lg">{b.cta}</button>
+                  <button className="btn ghost lg">Learn more →</button>
+                </div>
+              </div>
+              <HeroArt brand={b} aspect="1" />
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Footer() {
+      const order = window.BRAND_ORDER;
+      const idx = order.indexOf(slug);
+      const prev = order[(idx - 1 + order.length) % order.length];
+      const next = order[(idx + 1) % order.length];
+      return (
+        <div className="footer">
+          <span>CodeLoop Ecosystem · {b.name} Brand System · v1.0</span>
+          <span>
+            <a href={`brand.html?b=${prev}`} style={{color:"var(--text-muted)", textDecoration:"none", marginRight:12}}>← {window.BRANDS[prev].name}</a>
+            <a href={`brand.html?b=${next}`} style={{color:"var(--text-muted)", textDecoration:"none"}}>{window.BRANDS[next].name} →</a>
+          </span>
+        </div>
+      );
+    }
+
+    function BrandPage() {
+      return (
+        <>
+          <Topbar />
+          <div className="page">
+            <Hero />
+            <Identity />
+            <Palette />
+            <Typography />
+            <Tokens />
+            <Components />
+            <LogoUsage />
+            <HeroSample />
+            <Footer />
+          </div>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<BrandPage />);
+  </script>
+</body>
+</html>
